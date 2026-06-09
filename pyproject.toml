@@ -12,6 +12,7 @@ dev = ["pytest", "pytest-cov"]
 
 [project.scripts]
 genshin-parse = "vision_parser.parser_pipeline:main"
+genshin-play = "player_engine.player_pipeline:main"
 
 [build-system]
 requires = ["setuptools>=68"]
