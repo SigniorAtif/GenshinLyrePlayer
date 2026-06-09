@@ -71,14 +71,16 @@ class PlayerPipeline:
 
         mapper = KeyMapper(self._scancodes_path)
         injector: InputInjector | DryRunInjector
+        speed = self._speed_factor
         if dry_run:
             injector = DryRunInjector()
-            countdown_sec = 0.0  # no need to wait in dry-run
-            logger.info("DRY-RUN mode — SendInput calls suppressed")
+            countdown_sec = 0.0   # no need to wait in dry-run
+            speed = float("inf")  # skip all timing waits — just log instantly
+            logger.info("DRY-RUN mode — SendInput suppressed, timing skipped")
         else:
             injector = InputInjector()
 
-        scheduler = TimingScheduler(key_mapper=mapper, speed_factor=self._speed_factor)
+        scheduler = TimingScheduler(key_mapper=mapper, speed_factor=speed)
         scheduler.run(events, injector, countdown_sec=countdown_sec)
 
 

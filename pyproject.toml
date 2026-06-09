@@ -14,6 +14,9 @@ dev = ["pytest", "pytest-cov"]
 genshin-parse = "vision_parser.parser_pipeline:main"
 genshin-play = "player_engine.player_pipeline:main"
 
+[tool.setuptools.packages.find]
+include = ["vision_parser*", "player_engine*", "shared*"]
+
 [build-system]
 requires = ["setuptools>=68"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
