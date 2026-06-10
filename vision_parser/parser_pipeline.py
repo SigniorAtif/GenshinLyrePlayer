@@ -8,6 +8,8 @@ import logging
 from pathlib import Path
 from typing import Callable, Optional
 
+import cv2
+
 from vision_parser.chord_grouper import ChordGrouper
 from vision_parser.config.schema import InstrumentConfig, ResolutionRef
 from vision_parser.edge_detector import EdgeDetector, TriggerEvent
@@ -21,8 +23,30 @@ from shared.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_CONFIG = Path(__file__).parent.parent / "config" / "roi_profiles" / "lyre_1080p.json"
+_CONFIG_DIR = Path(__file__).parent.parent / "config" / "roi_profiles"
 _DEFAULT_OUTPUT = Path(__file__).parent.parent / "output"
+
+
+def _auto_config(video_path: str) -> Path:
+    """Pick the best-matching ROI profile for the video's resolution.
+
+    Resolution determines the detection channel and threshold set:
+    - width ≤ 960 px  →  lyre_848x480.json  (G_minus_R, low thresholds)
+    - width  > 960 px  →  lyre_1080p.json    (gray channel, high thresholds)
+
+    The ROI positions inside the chosen config are irrelevant — they are
+    always overridden by the auto-panel-detection pass.
+    """
+    cap = cv2.VideoCapture(video_path)
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    cap.release()
+    if w <= 960:
+        chosen = _CONFIG_DIR / "lyre_848x480.json"
+        logger.info("Auto-config: %dpx wide -> %s (G_minus_R)", w, chosen.name)
+    else:
+        chosen = _CONFIG_DIR / "lyre_1080p.json"
+        logger.info("Auto-config: %dpx wide -> %s (gray)", w, chosen.name)
+    return chosen
 
 
 class ParserPipeline:
@@ -202,8 +226,14 @@ def main() -> None:
     )
     parser.add_argument(
         "--config",
-        default=str(_DEFAULT_CONFIG),
-        help="Path to ROI profile JSON. Default: config/roi_profiles/lyre_1080p.json",
+        default=None,
+        help=(
+            "Path to ROI profile JSON. "
+            "Default: auto-selected by video resolution "
+            "(≤960px wide → lyre_848x480.json, else lyre_1080p.json). "
+            "ROI positions in the config are always overridden by auto-detection; "
+            "only the detection channel/thresholds matter."
+        ),
     )
     parser.add_argument("--bpm", type=float, default=None, help="Override BPM from config.")
     parser.add_argument(
@@ -216,7 +246,8 @@ def main() -> None:
 
     setup_logging(logging.DEBUG if args.debug else logging.INFO)
 
-    cfg = InstrumentConfig.from_json(args.config)
+    config_path = args.config if args.config else str(_auto_config(args.video))
+    cfg = InstrumentConfig.from_json(config_path)
     pipeline = ParserPipeline(cfg)
     pipeline.run(
         video_path=args.video,
