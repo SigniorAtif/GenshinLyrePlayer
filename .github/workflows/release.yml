@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release-dotnet:
+    name: Build & Release Player
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 6.0.x
+
+      - name: Publish — requires .NET runtime
+        run: >
+          dotnet publish GenshinLyreMidiPlayer/GenshinLyreMidiPlayer.WPF
+          -r win-x64 -c Release -o ./install
+          --self-contained false -p:PublishSingleFile=true
+
+      - name: Publish — portable (self-contained)
+        run: >
+          dotnet publish GenshinLyreMidiPlayer/GenshinLyreMidiPlayer.WPF
+          -r win-x64 -c Release -o ./portable
+          --self-contained true -p:PublishSingleFile=true
+
+      - name: Zip artifacts
+        run: |
+          7z a GenshinLyreMidiPlayer_${{ github.ref_name }}_win-x64_install.zip  ./install/*  -mx9
+          7z a GenshinLyreMidiPlayer_${{ github.ref_name }}_win-x64_portable.zip ./portable/* -mx9
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+          artifacts: |
+            GenshinLyreMidiPlayer_${{ github.ref_name }}_win-x64_install.zip
+            GenshinLyreMidiPlayer_${{ github.ref_name }}_win-x64_portable.zip
+          artifactContentType: application/zip
+          token: ${{ secrets.GITHUB_TOKEN }}
