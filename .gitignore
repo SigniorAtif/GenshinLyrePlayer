@@ -6,6 +6,10 @@
 # Personal / session scratchpad files
 thoughtdump*.md
 
+# Release build artifacts
+release/
+*.spec
+
 # Archive files (never commit release zips to the repo)
 *.zip
 

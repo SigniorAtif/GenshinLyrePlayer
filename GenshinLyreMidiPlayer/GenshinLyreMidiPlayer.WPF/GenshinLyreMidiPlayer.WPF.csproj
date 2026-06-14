@@ -6,7 +6,8 @@
         <UseWPF>true</UseWPF>
         <StartupObject>GenshinLyreMidiPlayer.WPF.App</StartupObject>
         <ApplicationManifest>app.manifest</ApplicationManifest>
-        <Version>4.0.5</Version>
+        <AssemblyName>GenshinLyreMidiPlayer</AssemblyName>
+        <Version>1.0.0</Version>
         <ApplicationIcon>item_windsong_lyre.ico</ApplicationIcon>
         <Nullable>enable</Nullable>
         <RepositoryUrl>https://github.com/sabihoshi/GenshinLyreMidiPlayer</RepositoryUrl>
