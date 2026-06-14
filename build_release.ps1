@@ -5,12 +5,12 @@
 .DESCRIPTION
     Produces three executables with no external runtime dependencies:
       GenshinLyreMidiPlayer.exe  --  self-contained WPF app (.NET runtime bundled)
-      genshin-parse.exe          --  video → token-sheet converter (Python + OpenCV)
-      genshin-play.exe           --  token-sheet → keystrokes player (Python)
+      genshin-parse.exe          --  video -> token-sheet converter (Python + OpenCV)
+      genshin-play.exe           --  token-sheet -> keystrokes player (Python)
 
-    Output
-      release\                              folder ready to upload as-is
-      GenshinLyreMidiPlayer-v<ver>-win-x64.zip   ready for GitHub Releases
+    Output:
+      release\                                    folder ready to upload as-is
+      GenshinLyreMidiPlayer-v<ver>-win-x64.zip    ready for GitHub Releases
 
 .REQUIREMENTS
     - Python 3.10+ on PATH   (pip install pyinstaller is handled automatically)
@@ -23,26 +23,25 @@
 param()
 
 $ErrorActionPreference = "Stop"
-$Root    = $PSScriptRoot
+$Root = $PSScriptRoot
 Set-Location $Root
 
-# ── Version (single source of truth — keep in sync with csproj + pyproject.toml) ──
+# Version -- keep in sync with csproj + pyproject.toml
 $Version = "1.0.0"
 
-# ── Paths ───────────────────────────────────────────────────────────────────
-$OutDir     = Join-Path $Root "release"
-$BuildDir   = Join-Path $Root "build\pyinstaller"
-$ZipPath    = Join-Path $Root "GenshinLyreMidiPlayer-v$Version-win-x64.zip"
-$CsProj     = "GenshinLyreMidiPlayer\GenshinLyreMidiPlayer.WPF\GenshinLyreMidiPlayer.WPF.csproj"
+# Paths
+$OutDir   = Join-Path $Root "release"
+$BuildDir = Join-Path $Root "build\pyinstaller"
+$ZipPath  = Join-Path $Root "GenshinLyreMidiPlayer-v$Version-win-x64.zip"
+$CsProj   = "GenshinLyreMidiPlayer\GenshinLyreMidiPlayer.WPF\GenshinLyreMidiPlayer.WPF.csproj"
 
-# ── Helper ──────────────────────────────────────────────────────────────────
 function Step([string]$msg) {
     Write-Host ""
     Write-Host "  $msg" -ForegroundColor Cyan
-    Write-Host ("  " + ("─" * $msg.Length)) -ForegroundColor DarkGray
+    Write-Host ("  " + ("-" * $msg.Length)) -ForegroundColor DarkGray
 }
 
-# ─── 0. Preflight ───────────────────────────────────────────────────────────
+# --- 0. Preflight -----------------------------------------------------------
 Step "Preflight"
 
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) { throw "python not found on PATH" }
@@ -59,7 +58,7 @@ Write-Host "  Python     : $(python --version)"
 Write-Host "  PyInstaller: $(python -m PyInstaller --version)"
 Write-Host "  dotnet     : $(dotnet --version)"
 
-# ─── 1. Clean ───────────────────────────────────────────────────────────────
+# --- 1. Clean ---------------------------------------------------------------
 Step "Clean"
 
 foreach ($p in @($OutDir, $BuildDir)) {
@@ -70,10 +69,11 @@ if (Test-Path $ZipPath) { Remove-Item $ZipPath -Force }
 New-Item $OutDir   -ItemType Directory | Out-Null
 New-Item $BuildDir -ItemType Directory | Out-Null
 
-# ─── 2. genshin-parse.exe ───────────────────────────────────────────────────
-Step "genshin-parse.exe  (PyInstaller + OpenCV ~60 MB)"
+# --- 2. genshin-parse.exe ---------------------------------------------------
+Step "genshin-parse.exe  (PyInstaller + OpenCV, ~60 MB)"
 
-# Source paths must be absolute so PyInstaller can find them regardless of --workpath
+# Source paths must be absolute so PyInstaller resolves them from the project
+# root, not from --workpath.
 python -m PyInstaller `
     --onefile `
     --name genshin-parse `
@@ -86,8 +86,8 @@ python -m PyInstaller `
 
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed for genshin-parse" }
 
-# ─── 3. genshin-play.exe ────────────────────────────────────────────────────
-Step "genshin-play.exe  (PyInstaller ~8 MB)"
+# --- 3. genshin-play.exe ----------------------------------------------------
+Step "genshin-play.exe  (PyInstaller, ~8 MB)"
 
 python -m PyInstaller `
     --onefile `
@@ -100,8 +100,8 @@ python -m PyInstaller `
 
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed for genshin-play" }
 
-# ─── 4. GenshinLyreMidiPlayer.exe ───────────────────────────────────────────
-Step "GenshinLyreMidiPlayer.exe  (dotnet publish, self-contained ~230 MB)"
+# --- 4. GenshinLyreMidiPlayer.exe -------------------------------------------
+Step "GenshinLyreMidiPlayer.exe  (dotnet publish, self-contained, ~230 MB)"
 
 dotnet publish $CsProj `
     --configuration Release `
@@ -116,7 +116,7 @@ dotnet publish $CsProj `
 
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 
-# ─── 5. Strip non-exe publish artefacts ─────────────────────────────────────
+# --- 5. Strip non-exe publish artefacts -------------------------------------
 Step "Strip"
 
 Get-ChildItem $OutDir -File | Where-Object Extension -ne ".exe" | ForEach-Object {
@@ -124,26 +124,26 @@ Get-ChildItem $OutDir -File | Where-Object Extension -ne ".exe" | ForEach-Object
     Remove-Item $_.FullName -Force
 }
 
-# Remove generated .spec files from repo root (they're build artefacts)
+# Remove generated .spec files from repo root (build artefacts)
 Get-ChildItem $Root -Filter "*.spec" -File | Remove-Item -Force
 
-# ─── 6. Zip ─────────────────────────────────────────────────────────────────
+# --- 6. Zip -----------------------------------------------------------------
 Step "Zip"
 
 Compress-Archive -Path "$OutDir\*" -DestinationPath $ZipPath -CompressionLevel Optimal
 Write-Host "  Created: $ZipPath"
 
-# ─── 7. Summary ─────────────────────────────────────────────────────────────
+# --- 7. Summary -------------------------------------------------------------
 Write-Host ""
 Write-Host "  Release v$Version ready!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  $OutDir" -ForegroundColor DarkGray
 Get-ChildItem $OutDir -File | Sort-Object Name | ForEach-Object {
-    $size = if ($_.Length -ge 1MB) { "{0:N0} MB" -f ($_.Length/1MB) }
-            else                    { "{0:N0} KB" -f ($_.Length/1KB) }
+    $size = if ($_.Length -ge 1MB) { "{0:N0} MB" -f ($_.Length / 1MB) }
+            else                    { "{0:N0} KB" -f ($_.Length / 1KB) }
     Write-Host ("    {0,-40} {1,8}" -f $_.Name, $size)
 }
-$zipMb = "{0:N0} MB" -f ((Get-Item $ZipPath).Length/1MB)
+$zipMb = "{0:N0} MB" -f ((Get-Item $ZipPath).Length / 1MB)
 Write-Host ""
-Write-Host ("  {0,-44} {1,8}  ← upload to GitHub Releases" -f (Split-Path $ZipPath -Leaf), $zipMb)
+Write-Host ("  {0,-44} {1,8}  <- upload to GitHub Releases" -f (Split-Path $ZipPath -Leaf), $zipMb)
 Write-Host ""
