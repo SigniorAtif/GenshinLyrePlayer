@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -29,6 +31,12 @@ public class LyrePlayerViewModel : Screen,
     IHandle<PlayTimerNotification>
 {
     private static readonly Settings Settings = Settings.Default;
+
+    // ── Visualizer state ─────────────────────────────────────────────
+    private List<VisualToken> _tokenTimeline    = new();
+    private int               _lastVisualizerIndex = -1;
+    // ─────────────────────────────────────────────────────────────────
+
     private readonly IEventAggregator _events;
     private readonly MainWindowViewModel _main;
     private readonly MediaPlayer? _player;
@@ -83,6 +91,27 @@ public class LyrePlayerViewModel : Screen,
     };
 
     public BindableCollection<MidiTrack> MidiTracks { get; } = new();
+
+    // ── Visualizer ────────────────────────────────────────────────────
+
+    /// <summary>True when the currently loaded file is a .txt token sheet.</summary>
+    public bool IsPlayingTxtFile { get; private set; }
+
+    /// <summary>
+    /// Every token in the song, built once at load time.
+    /// Only two items' <see cref="VisualTokenViewModel.State"/> change per tick
+    /// (the outgoing Current→Past, the incoming one→Current), so the UI
+    /// only re-renders those two chips instead of rebuilding the whole list.
+    /// </summary>
+    public BindableCollection<VisualTokenViewModel> AllTokens { get; } = new();
+
+    /// <summary>
+    /// The token currently being played — kept in sync so the view's
+    /// ListBox can bind SelectedItem and auto-scroll to it.
+    /// </summary>
+    public VisualTokenViewModel? CurrentTokenVM { get; private set; }
+
+    // ─────────────────────────────────────────────────────────────────
 
     public bool CanHitNext
     {
@@ -218,6 +247,8 @@ public class LyrePlayerViewModel : Screen,
         }
 
         MidiTracks.Clear();
+        ResetVisualizer();
+        IsPlayingTxtFile = false;
         MoveSlider(TimeSpan.Zero);
 
         Playback               = null;
@@ -264,6 +295,12 @@ public class LyrePlayerViewModel : Screen,
     {
         NotifyOfPropertyChange(() => CurrentTime);
 
+        // Update the visualizer here so it responds to both playback ticks
+        // (MoveSlider sets SongPosition, which triggers this callback) and
+        // manual slider seeks (user drags the progress bar).
+        if (IsPlayingTxtFile && _tokenTimeline.Count > 0)
+            UpdateVisualizer(_songPosition);
+
         if (Playback is null) Next();
 
         if (!_ignoreSliderChange && Playback is not null)
@@ -284,8 +321,7 @@ public class LyrePlayerViewModel : Screen,
         foreach (var playbackTime in e.Times)
         {
             TimeSpan time = (MetricTimeSpan) playbackTime.Time;
-            MoveSlider(time);
-
+            MoveSlider(time);  // → sets SongPosition → OnSongPositionChanged → UpdateVisualizer
             UpdateButtons();
         }
     }
@@ -444,19 +480,156 @@ public class LyrePlayerViewModel : Screen,
 
     private void InitializeTracks()
     {
-        if (Playlist.OpenedFile?.Midi is null)
-            return;
+        if (Playlist.OpenedFile?.Midi is null) return;
 
+        var isTxt = Playlist.OpenedFile.Path
+            .EndsWith(".txt", StringComparison.OrdinalIgnoreCase);
+
+        // Always populate MidiTracks regardless of file type.
+        // InitializePlayback() rebuilds midi.Chunks from MidiTracks —
+        // if MidiTracks is empty the MIDI gets wiped and duration becomes 0:00.
         MidiTracks.Clear();
         MidiTracks.AddRange(Playlist.OpenedFile
             .Midi.GetTrackChunks()
             .Select(t => new MidiTrack(_events, t)));
+
+        // Reset visualizer data, then set the file-type flag
+        _tokenTimeline.Clear();
+        _lastVisualizerIndex = -1;
+        AllTokens.Clear();
+        CurrentTokenVM = null;
+
+        IsPlayingTxtFile = isTxt;
+
+        // For .txt files, additionally build the token timeline for the visualizer
+        if (isTxt)
+            BuildTokenTimeline(Playlist.OpenedFile.Path);
     }
 
     private void MoveSlider(TimeSpan value)
     {
         _ignoreSliderChange = true;
         SongPosition        = value.TotalSeconds;
+    }
+
+    // ── Token sheet visualizer helpers ────────────────────────────────
+
+    /// <summary>
+    /// Clears all visualizer data.  <see cref="IsPlayingTxtFile"/> is NOT touched
+    /// here — call sites manage it explicitly.
+    /// </summary>
+    private void ResetVisualizer()
+    {
+        _tokenTimeline.Clear();
+        _lastVisualizerIndex = -1;
+        AllTokens.Clear();
+        CurrentTokenVM = null;
+    }
+
+    /// <summary>
+    /// Parses a .txt token sheet into a flat timed list and populates
+    /// <see cref="AllTokens"/> with one <see cref="VisualTokenViewModel"/> per token.
+    /// </summary>
+    private void BuildTokenTimeline(string path)
+    {
+        var lines = File.ReadAllLines(path);
+        var bpm   = 120;
+
+        if (lines.Length > 0
+            && lines[0].StartsWith("BPM ", StringComparison.OrdinalIgnoreCase)
+            && int.TryParse(lines[0][4..].Trim(), out var parsed))
+            bpm = parsed;
+
+        _tokenTimeline       = new List<VisualToken>();
+        _lastVisualizerIndex = -1;
+
+        var cursor = TimeSpan.Zero;
+
+        foreach (var line in lines.Skip(1))
+        {
+            foreach (var token in line.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                // Parse /N duration suffix
+                var slash  = token.IndexOf('/');
+                double div = 1.0;
+                string kPart;
+                if (slash >= 0 && double.TryParse(token[(slash + 1)..], out var d) && d > 0)
+                {
+                    div   = d;
+                    kPart = token[..slash];
+                }
+                else kPart = token;
+
+                var durationSec = (60.0 / bpm) * (4.0 / div);
+                var end         = cursor + TimeSpan.FromSeconds(durationSec);
+                var isRest      = kPart.TrimStart('[').TrimEnd(']') == "-";
+
+                _tokenTimeline.Add(new VisualToken(cursor, end, token, isRest));
+                cursor = end;
+            }
+        }
+
+        // Populate the observable list that the view binds to.
+        // Runs on the UI thread (InitializeTracks is called from Handle(MidiFile)
+        // which Stylet dispatches to the UI thread for Screen objects).
+        AllTokens.Clear();
+        foreach (var t in _tokenTimeline)
+            AllTokens.Add(new VisualTokenViewModel(t.Display));
+
+        CurrentTokenVM = null;
+    }
+
+    /// <summary>
+    /// Updates the visualizer to reflect <paramref name="currentTime"/>.
+    /// Debounced — only does work when the current token index actually changes.
+    /// Mutates two items' <see cref="VisualTokenViewModel.State"/> in-place so
+    /// the UI only re-renders those two chips.
+    /// </summary>
+    private void UpdateVisualizer(TimeSpan currentTime)
+    {
+        if (_tokenTimeline.Count == 0 || AllTokens.Count == 0) return;
+
+        var idx = FindTokenIndex(currentTime);
+        if (idx == _lastVisualizerIndex) return;
+
+        var prevIdx          = _lastVisualizerIndex;
+        _lastVisualizerIndex = idx;
+
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            // Outgoing token → Past
+            if (prevIdx >= 0 && prevIdx < AllTokens.Count)
+                AllTokens[prevIdx].State = VisualTokenState.Past;
+
+            // Incoming token → Current; expose it for the ListBox selection binding
+            if (idx >= 0 && idx < AllTokens.Count)
+            {
+                AllTokens[idx].State = VisualTokenState.Current;
+                CurrentTokenVM       = AllTokens[idx];
+            }
+        });
+    }
+
+    /// <summary>
+    /// Binary-searches <see cref="_tokenTimeline"/> for the index of the token
+    /// whose <c>Start</c> is ≤ <paramref name="currentTime"/>.
+    /// </summary>
+    private int FindTokenIndex(TimeSpan currentTime)
+    {
+        if (_tokenTimeline.Count == 0) return 0;
+
+        int lo = 0, hi = _tokenTimeline.Count - 1, result = 0;
+        while (lo <= hi)
+        {
+            var mid = (lo + hi) / 2;
+            if (_tokenTimeline[mid].Start <= currentTime)
+            {
+                result = mid;
+                lo     = mid + 1;
+            }
+            else hi = mid - 1;
+        }
+        return result;
     }
 
     private void OnNoteEvent(object? sender, MidiEventPlayedEventArgs e)

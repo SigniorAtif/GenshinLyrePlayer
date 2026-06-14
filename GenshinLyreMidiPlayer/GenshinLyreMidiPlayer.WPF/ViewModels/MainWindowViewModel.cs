@@ -1,15 +1,10 @@
-using System.Linq;
 using System.Windows.Controls;
 using GenshinLyreMidiPlayer.Data;
-using GenshinLyreMidiPlayer.WPF.Views;
 using JetBrains.Annotations;
 using ModernWpf;
 using Stylet;
 using StyletIoC;
 using Wpf.Ui.Appearance;
-using Wpf.Ui.Common;
-using Wpf.Ui.Controls;
-using Wpf.Ui.Controls.Interfaces;
 using Wpf.Ui.Mvvm.Contracts;
 using AutoSuggestBox = Wpf.Ui.Controls.AutoSuggestBox;
 
@@ -18,7 +13,6 @@ namespace GenshinLyreMidiPlayer.WPF.ViewModels;
 [UsedImplicitly]
 public class MainWindowViewModel : Conductor<IScreen>
 {
-    public static NavigationStore Navigation = null!;
     private readonly IContainer _ioc;
     private readonly IThemeService _theme;
 
@@ -32,31 +26,63 @@ public class MainWindowViewModel : Conductor<IScreen>
         PlaylistView   = new(ioc, this);
         SettingsView   = new(ioc, this);
         PianoSheetView = new(this);
+        EditorView     = new(ioc.Get<IEventAggregator>());
+        ConverterView  = new(this);
 
         ActiveItem = PlayerView = new(ioc, this);
     }
 
     public bool ShowUpdate => SettingsView.NeedsUpdate && ActiveItem != SettingsView;
 
-    public LyrePlayerViewModel PlayerView { get; }
+    public string ActiveTab { get; private set; } = "player";
 
-    public PianoSheetViewModel PianoSheetView { get; }
-
-    public PlaylistViewModel PlaylistView { get; }
-
-    public SettingsPageViewModel SettingsView { get; }
-
+    public LyrePlayerViewModel       PlayerView    { get; }
+    public PianoSheetViewModel       PianoSheetView { get; }
+    public PlaylistViewModel         PlaylistView  { get; }
+    public SettingsPageViewModel     SettingsView  { get; }
+    public TokenSheetEditorViewModel EditorView    { get; }
+    public ConverterViewModel        ConverterView { get; }
     public string Title { get; set; }
 
-    public void Navigate(INavigation sender, RoutedNavigationEventArgs args)
+    public void ShowPlayer()
     {
-        if ((args.CurrentPage as NavigationItem)?.Tag is IScreen viewModel)
-            ActivateItem(viewModel);
-
+        ActiveTab = "player";
+        ActivateItem(PlayerView);
         NotifyOfPropertyChange(() => ShowUpdate);
     }
 
-    public void NavigateToSettings() => ActivateItem(SettingsView);
+    public void ShowPlaylist()
+    {
+        ActiveTab = "playlist";
+        ActivateItem(PlaylistView);
+    }
+
+    public void ShowSheet()
+    {
+        ActiveTab = "sheet";
+        ActivateItem(PianoSheetView);
+    }
+
+    public void ShowEditor()
+    {
+        ActiveTab = "editor";
+        ActivateItem(EditorView);
+    }
+
+    public void ShowConverter()
+    {
+        ActiveTab = "convert";
+        ActivateItem(ConverterView);
+    }
+
+    public void ShowSettings()
+    {
+        ActiveTab = "settings";
+        ActivateItem(SettingsView);
+        NotifyOfPropertyChange(() => ShowUpdate);
+    }
+
+    public void NavigateToSettings() => ShowSettings();
 
     public void ToggleTheme()
     {
@@ -74,23 +100,12 @@ public class MainWindowViewModel : Conductor<IScreen>
 
     public void SearchSong(AutoSuggestBox sender, TextChangedEventArgs e)
     {
-        if (ActiveItem != PlaylistView)
-        {
-            ActivateItem(PlaylistView);
-
-            var playlist = Navigation.Items
-                .OfType<NavigationItem>()
-                .First(nav => nav.Tag == PlaylistView);
-            var index = Navigation.Items.IndexOf(playlist);
-            Navigation.SelectedPageIndex = index;
-        }
-
+        if (ActiveItem != PlaylistView) ShowPlaylist();
         PlaylistView.FilterText = sender.Text;
     }
 
     protected override async void OnViewLoaded()
     {
-        Navigation = ((MainWindowView) View).RootNavigation;
         SettingsView.OnThemeChanged();
 
         if (!await SettingsView.TryGetLocationAsync()) _ = SettingsView.LocationMissing();

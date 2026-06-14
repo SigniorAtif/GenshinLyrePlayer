@@ -47,4 +47,14 @@ public class MidiFile : Screen
             ? TokenConverter.ToMidi(Path)
             : Melanchall.DryWetMidi.Core.MidiFile.Read(Path, _settings);
     }
+
+    /// <summary>
+    /// Re-reads the file from disk and raises <see cref="Duration"/> changed so
+    /// any <c>Mode=OneWay</c> bindings update in the playlist.
+    /// </summary>
+    public void Refresh()
+    {
+        InitializeMidi();
+        NotifyOfPropertyChange(nameof(Duration));
+    }
 }

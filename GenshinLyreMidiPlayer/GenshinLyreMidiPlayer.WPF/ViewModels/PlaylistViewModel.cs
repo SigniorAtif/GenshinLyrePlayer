@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Windows.Media;
 using GenshinLyreMidiPlayer.Data;
 using GenshinLyreMidiPlayer.Data.Entities;
+using GenshinLyreMidiPlayer.Data.Notification;
 using GenshinLyreMidiPlayer.WPF.ModernWPF.Errors;
 using Melanchall.DryWetMidi.Core;
 using Microsoft.Win32;
@@ -15,7 +16,8 @@ using MidiFile = GenshinLyreMidiPlayer.Data.Midi.MidiFile;
 
 namespace GenshinLyreMidiPlayer.WPF.ViewModels;
 
-public class PlaylistViewModel : Screen
+public class PlaylistViewModel : Screen,
+    IHandle<TokenSheetSavedNotification>
 {
     public enum LoopMode
     {
@@ -33,7 +35,19 @@ public class PlaylistViewModel : Screen
     {
         _ioc    = ioc;
         _events = ioc.Get<IEventAggregator>();
+        _events.Subscribe(this);
         _main   = main;
+    }
+
+    /// <summary>
+    /// When the editor saves a .txt file, refresh any matching playlist entry
+    /// so the duration label updates without the user having to remove and re-add it.
+    /// </summary>
+    public void Handle(TokenSheetSavedNotification msg)
+    {
+        var match = Tracks.FirstOrDefault(t =>
+            t.Path.Equals(msg.Path, StringComparison.OrdinalIgnoreCase));
+        match?.Refresh();
     }
 
     public BindableCollection<MidiFile> FilteredTracks => string.IsNullOrWhiteSpace(FilterText)

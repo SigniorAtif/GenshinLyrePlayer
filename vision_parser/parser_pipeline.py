@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import sys
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -23,8 +24,15 @@ from shared.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
-_CONFIG_DIR = Path(__file__).parent.parent / "config" / "roi_profiles"
-_DEFAULT_OUTPUT = Path(__file__).parent.parent / "output"
+# When bundled with PyInstaller, data files land in sys._MEIPASS (onefile)
+# or next to the exe (onedir).  __file__ is unreliable in that case.
+_ROOT = (
+    Path(sys._MEIPASS)          # type: ignore[attr-defined]
+    if getattr(sys, "frozen", False)
+    else Path(__file__).parent.parent
+)
+_CONFIG_DIR    = _ROOT / "config" / "roi_profiles"
+_DEFAULT_OUTPUT = _ROOT / "output"
 
 
 def _auto_config(video_path: str) -> Path:
@@ -242,9 +250,19 @@ def main() -> None:
         help="Optional path to save intermediate trigger JSON for debugging.",
     )
     parser.add_argument("--debug", action="store_true", help="Enable DEBUG logging.")
+    parser.add_argument(
+        "--progress-stdout",
+        action="store_true",
+        help="Print 'PROGRESS frame/total' lines to stdout for host-app integration.",
+    )
     args = parser.parse_args()
 
     setup_logging(logging.DEBUG if args.debug else logging.INFO)
+
+    progress_cb = None
+    if args.progress_stdout:
+        def progress_cb(frame_index: int, total_frames: int) -> None:
+            print(f"PROGRESS {frame_index}/{total_frames}", flush=True)
 
     config_path = args.config if args.config else str(_auto_config(args.video))
     cfg = InstrumentConfig.from_json(config_path)
@@ -254,6 +272,7 @@ def main() -> None:
         output_path=args.output,
         bpm_override=args.bpm,
         intermediate_path=args.intermediate,
+        progress_callback=progress_cb,
     )
 
 

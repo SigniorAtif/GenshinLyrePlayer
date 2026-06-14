@@ -1,0 +1,206 @@
+<UserControl
+    x:Class="GenshinLyreMidiPlayer.WPF.Views.TokenSheetEditorView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008" mc:Ignorable="d"
+    xmlns:s="https://github.com/canton7/Stylet"
+    xmlns:viewModels="clr-namespace:GenshinLyreMidiPlayer.WPF.ViewModels"
+    d:DataContext="{d:DesignInstance Type=viewModels:TokenSheetEditorViewModel}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />   <!-- page header -->
+            <RowDefinition Height="*" />       <!-- body -->
+        </Grid.RowDefinitions>
+
+        <!-- ── Page header ────────────────────────────────── -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="TOKEN SHEET" Style="{StaticResource EyebrowStyle}" />
+            <TextBlock Text="Editor" Style="{StaticResource PageTitleStyle}" />
+        </StackPanel>
+
+        <!-- ── Two-panel body ─────────────────────────────── -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="210" />   <!-- sidebar file browser -->
+                <ColumnDefinition Width="12" />    <!-- gap -->
+                <ColumnDefinition Width="*" />     <!-- editor panel -->
+            </Grid.ColumnDefinitions>
+
+            <!-- ════════════════════════════════════════════
+                 Col 0 — File browser sidebar
+                 ════════════════════════════════════════════ -->
+            <Border Grid.Column="0" Style="{StaticResource WinPanel}" Padding="12,14">
+                <DockPanel LastChildFill="True">
+
+                    <!-- Header + browse button -->
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <TextBlock Text="FILES" Style="{StaticResource EyebrowStyle}"
+                                   VerticalAlignment="Center" />
+                        <Button DockPanel.Dock="Right"
+                                Command="{s:Action BrowseDirectory}"
+                                Style="{StaticResource GhostBtn}"
+                                Width="28" Height="28" Padding="0"
+                                Foreground="{StaticResource Ink3Brush}"
+                                ToolTip="Set folder">
+                            <TextBlock Text="&#xE838;" FontFamily="Segoe MDL2 Assets" FontSize="14" />
+                        </Button>
+                    </DockPanel>
+
+                    <!-- Current directory path -->
+                    <Border DockPanel.Dock="Top"
+                            Visibility="{Binding SheetDirectory, Converter={x:Static s:BoolToVisibilityConverter.Instance}}"
+                            Margin="0,0,0,8" Padding="8,5" CornerRadius="6"
+                            Background="{StaticResource Bg3Brush}">
+                        <TextBlock Text="{Binding SheetDirectory}"
+                                   FontSize="10.5" Foreground="{StaticResource Ink4Brush}"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding SheetDirectory}" />
+                    </Border>
+
+                    <!-- Refresh button -->
+                    <Button DockPanel.Dock="Bottom"
+                            Command="{s:Action RefreshFiles}"
+                            Style="{StaticResource GhostBtn}"
+                            Height="30" Padding="10,0" Margin="0,6,0,0"
+                            Foreground="{StaticResource Ink3Brush}" FontSize="12">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                       Margin="0,0,6,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Refresh" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Empty hint -->
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="Open a file to populate folder"
+                               FontSize="11.5" Foreground="{StaticResource Ink4Brush}"
+                               TextWrapping="Wrap" Margin="2,4,0,0"
+                               Visibility="{Binding SheetDirectory, Converter={x:Static s:BoolToVisibilityConverter.InverseInstance}}" />
+
+                    <!-- File list -->
+                    <ListBox ItemsSource="{Binding SheetFileNames}"
+                             SelectedItem="{Binding SelectedSheetFile}"
+                             Style="{StaticResource FileListStyle}"
+                             Margin="0,2,0,0" />
+                </DockPanel>
+            </Border>
+
+            <!-- ════════════════════════════════════════════
+                 Col 2 — Editor panel
+                 ════════════════════════════════════════════ -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />   <!-- toolbar -->
+                    <RowDefinition Height="*" />       <!-- text editor -->
+                    <RowDefinition Height="Auto" />   <!-- lyre keyboard -->
+                </Grid.RowDefinitions>
+
+                <!-- ── Toolbar ─────────────────────────────── -->
+                <Border Grid.Row="0" Style="{StaticResource WinPanelSm}" Padding="12,9" Margin="0,0,0,10">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                            <Button Command="{s:Action OpenFile}"
+                                    Style="{StaticResource WinBtn}" Height="32" Padding="10,0" Margin="0,0,6,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE8E5;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                               Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="Open" FontSize="12" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{s:Action SaveFile}"
+                                    Style="{StaticResource AccentBtn}" Height="32" Padding="10,0" Margin="0,0,6,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE74E;" FontFamily="Segoe MDL2 Assets" FontSize="13"
+                                               Margin="0,0,6,0" VerticalAlignment="Center" />
+                                    <TextBlock Text="Save" FontSize="12" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{s:Action SaveFileAs}"
+                                    Style="{StaticResource GhostBtn}" Height="32" Padding="10,0"
+                                    Foreground="{StaticResource Ink3Brush}" FontSize="12">
+                                Save As…
+                            </Button>
+                        </StackPanel>
+
+                        <!-- Filename + unsaved indicator -->
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding FileName, Mode=OneWay}"
+                                       FontSize="12" Foreground="{StaticResource Ink3Brush}" />
+                            <TextBlock Text=" ●" FontSize="12" Foreground="{StaticResource AccentBrush}"
+                                       Visibility="{Binding HasChanges, Converter={x:Static s:BoolToVisibilityConverter.Instance}}" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- ── Text editor ─────────────────────────── -->
+                <Border Grid.Row="1" Style="{StaticResource WinPanel}" Padding="0">
+                    <TextBox
+                        x:Name="EditorTextBox"
+                        Text="{Binding Content, UpdateSourceTrigger=PropertyChanged}"
+                        Style="{StaticResource WinTextBoxMulti}"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="18"
+                        AcceptsReturn="True"
+                        AcceptsTab="True"
+                        TextWrapping="Wrap"
+                        VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Auto"
+                        FontFamily="{StaticResource MonoFont}"
+                        FontSize="14"
+                        SpellCheck.IsEnabled="False" />
+                </Border>
+
+                <!-- ── Lyre keyboard ───────────────────────── -->
+                <Border Grid.Row="2" Style="{StaticResource WinPanel}" Padding="14,12" Margin="0,10,0,0">
+                    <StackPanel>
+                        <TextBlock Text="INSERT NOTE" Style="{StaticResource EyebrowStyle}" Margin="0,0,0,8" />
+                        <!-- Row 1: Z X C V B N M  (lower register) + rest -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <Button Tag="Z" Style="{StaticResource KeyBtn}" Content="Z" Click="OnKeyButtonClick" />
+                            <Button Tag="X" Style="{StaticResource KeyBtn}" Content="X" Click="OnKeyButtonClick" />
+                            <Button Tag="C" Style="{StaticResource KeyBtn}" Content="C" Click="OnKeyButtonClick" />
+                            <Button Tag="V" Style="{StaticResource KeyBtn}" Content="V" Click="OnKeyButtonClick" />
+                            <Button Tag="B" Style="{StaticResource KeyBtn}" Content="B" Click="OnKeyButtonClick" />
+                            <Button Tag="N" Style="{StaticResource KeyBtn}" Content="N" Click="OnKeyButtonClick" />
+                            <Button Tag="M" Style="{StaticResource KeyBtn}" Content="M" Click="OnKeyButtonClick" />
+                            <Border Width="10" />
+                            <Button Tag="-" Style="{StaticResource KeyBtnSpecial}" Content="-" Click="OnKeyButtonClick"
+                                    ToolTip="Rest" />
+                        </StackPanel>
+                        <!-- Row 2: A S D F G H J  (middle) + duration tokens -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <Button Tag="A" Style="{StaticResource KeyBtn}" Content="A" Click="OnKeyButtonClick" />
+                            <Button Tag="S" Style="{StaticResource KeyBtn}" Content="S" Click="OnKeyButtonClick" />
+                            <Button Tag="D" Style="{StaticResource KeyBtn}" Content="D" Click="OnKeyButtonClick" />
+                            <Button Tag="F" Style="{StaticResource KeyBtn}" Content="F" Click="OnKeyButtonClick" />
+                            <Button Tag="G" Style="{StaticResource KeyBtn}" Content="G" Click="OnKeyButtonClick" />
+                            <Button Tag="H" Style="{StaticResource KeyBtn}" Content="H" Click="OnKeyButtonClick" />
+                            <Button Tag="J" Style="{StaticResource KeyBtn}" Content="J" Click="OnKeyButtonClick" />
+                            <Border Width="10" />
+                            <Button Tag="/1" Style="{StaticResource KeyBtnSpecial}" Content="/1" Click="OnKeyButtonClick" ToolTip="Whole" />
+                            <Button Tag="/2" Style="{StaticResource KeyBtnSpecial}" Content="/2" Click="OnKeyButtonClick" ToolTip="Half" />
+                            <Button Tag="/4" Style="{StaticResource KeyBtnSpecial}" Content="/4" Click="OnKeyButtonClick" ToolTip="Quarter" />
+                            <Button Tag="/8" Style="{StaticResource KeyBtnSpecial}" Content="/8" Click="OnKeyButtonClick" ToolTip="Eighth" />
+                        </StackPanel>
+                        <!-- Row 3: Q W E R T Y U  (upper) + chord brackets -->
+                        <StackPanel Orientation="Horizontal">
+                            <Button Tag="Q" Style="{StaticResource KeyBtn}" Content="Q" Click="OnKeyButtonClick" />
+                            <Button Tag="W" Style="{StaticResource KeyBtn}" Content="W" Click="OnKeyButtonClick" />
+                            <Button Tag="E" Style="{StaticResource KeyBtn}" Content="E" Click="OnKeyButtonClick" />
+                            <Button Tag="R" Style="{StaticResource KeyBtn}" Content="R" Click="OnKeyButtonClick" />
+                            <Button Tag="T" Style="{StaticResource KeyBtn}" Content="T" Click="OnKeyButtonClick" />
+                            <Button Tag="Y" Style="{StaticResource KeyBtn}" Content="Y" Click="OnKeyButtonClick" />
+                            <Button Tag="U" Style="{StaticResource KeyBtn}" Content="U" Click="OnKeyButtonClick" />
+                            <Border Width="10" />
+                            <Button Tag="[" Style="{StaticResource KeyBtnSpecial}" Content="[" Click="OnKeyButtonClick" ToolTip="Start chord" />
+                            <Button Tag="]" Style="{StaticResource KeyBtnSpecial}" Content="]" Click="OnKeyButtonClick" ToolTip="End chord" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>
