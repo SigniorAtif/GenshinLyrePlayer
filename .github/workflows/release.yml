@@ -5,8 +5,8 @@ on:
     tags: ["v*"]
 
 jobs:
-  release-dotnet:
-    name: Build & Release Player
+  release:
+    name: Build & Release
     runs-on: windows-latest
 
     steps:
@@ -16,22 +16,21 @@ jobs:
         with:
           dotnet-version: 6.0.x
 
-      - name: Publish — requires .NET runtime
-        run: >
-          dotnet publish GenshinLyreMidiPlayer/GenshinLyreMidiPlayer.WPF
-          -r win-x64 -c Release -o ./install
-          --self-contained false -p:PublishSingleFile=true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-      - name: Publish — portable (self-contained)
-        run: >
-          dotnet publish GenshinLyreMidiPlayer/GenshinLyreMidiPlayer.WPF
-          -r win-x64 -c Release -o ./portable
-          --self-contained true -p:PublishSingleFile=true
+      - name: Install Python dependencies
+        run: pip install -e ".[dev]"
 
-      - name: Zip artifacts
+      - name: Build release package
         run: |
-          7z a GenshinLyreMidiPlayer_${{ github.ref_name }}_win-x64_install.zip  ./install/*  -mx9
-          7z a GenshinLyreMidiPlayer_${{ github.ref_name }}_win-x64_portable.zip ./portable/* -mx9
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart("v")
+          (Get-Content build_release.ps1) -replace '^\$Version = ".*"', "`$Version = `"$version`"" |
+            Set-Content build_release.ps1
+          .\build_release.ps1
+        shell: pwsh
 
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1
@@ -39,8 +38,6 @@ jobs:
           allowUpdates: true
           omitBodyDuringUpdate: true
           omitNameDuringUpdate: true
-          artifacts: |
-            GenshinLyreMidiPlayer_${{ github.ref_name }}_win-x64_install.zip
-            GenshinLyreMidiPlayer_${{ github.ref_name }}_win-x64_portable.zip
+          artifacts: "GenshinLyrePlayer-v*-win-x64.zip"
           artifactContentType: application/zip
           token: ${{ secrets.GITHUB_TOKEN }}

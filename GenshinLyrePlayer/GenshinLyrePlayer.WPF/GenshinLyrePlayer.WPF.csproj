@@ -42,7 +42,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\GenshinLyreMidiPlayer.Data\GenshinLyreMidiPlayer.Data.csproj" />
+        <ProjectReference Include="..\GenshinLyrePlayer.Data\GenshinLyrePlayer.Data.csproj" />
     </ItemGroup>
 
     <ItemGroup>

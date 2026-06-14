@@ -8,7 +8,7 @@
     xmlns:s="https://github.com/canton7/Stylet"
     xmlns:viewModels="clr-namespace:GenshinLyreMidiPlayer.WPF.ViewModels"
     xmlns:core="clr-namespace:GenshinLyreMidiPlayer.WPF.Core"
-    xmlns:properties="clr-namespace:GenshinLyreMidiPlayer.Data.Properties;assembly=GenshinLyreMidiPlayer.Data"
+    xmlns:properties="clr-namespace:GenshinLyreMidiPlayer.Data.Properties;assembly=GenshinLyrePlayer.Data"
     d:DataContext="{d:DesignInstance Type=viewModels:PianoSheetViewModel}">
 
     <UserControl.Resources>

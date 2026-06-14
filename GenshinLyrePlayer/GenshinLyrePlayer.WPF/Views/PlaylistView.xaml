@@ -8,7 +8,7 @@
     xmlns:componentModel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
     xmlns:modernWpf="clr-namespace:GenshinLyreMidiPlayer.WPF.ModernWPF"
     xmlns:viewModels="clr-namespace:GenshinLyreMidiPlayer.WPF.ViewModels"
-    xmlns:midi="clr-namespace:GenshinLyreMidiPlayer.Data.Midi;assembly=GenshinLyreMidiPlayer.Data"
+    xmlns:midi="clr-namespace:GenshinLyreMidiPlayer.Data.Midi;assembly=GenshinLyrePlayer.Data"
     d:DataContext="{d:DesignInstance Type=viewModels:PlaylistViewModel}">
 
     <UserControl.Resources>

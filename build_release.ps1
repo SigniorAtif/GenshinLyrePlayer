@@ -33,7 +33,7 @@ $Version = "1.0.0"
 $OutDir   = Join-Path $Root "release"
 $BuildDir = Join-Path $Root "build\pyinstaller"
 $ZipPath  = Join-Path $Root "GenshinLyrePlayer-v$Version-win-x64.zip"
-$CsProj   = "GenshinLyreMidiPlayer\GenshinLyreMidiPlayer.WPF\GenshinLyreMidiPlayer.WPF.csproj"
+$CsProj   = "GenshinLyrePlayer\GenshinLyrePlayer.WPF\GenshinLyrePlayer.WPF.csproj"
 
 function Step([string]$msg) {
     Write-Host ""

@@ -42,7 +42,7 @@ jobs:
           dotnet-version: 6.0.x
 
       - name: Restore
-        run: dotnet restore GenshinLyreMidiPlayer/GenshinLyreMidiPlayer.sln
+        run: dotnet restore GenshinLyrePlayer/GenshinLyrePlayer.sln
 
       - name: Build
-        run: dotnet build GenshinLyreMidiPlayer/GenshinLyreMidiPlayer.sln -c Release --no-restore
+        run: dotnet build GenshinLyrePlayer/GenshinLyrePlayer.sln -c Release --no-restore
