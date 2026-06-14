@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import cv2
 import numpy as np
@@ -67,8 +66,8 @@ class ROIManager:
     def debug_overlay_cropped(self, bgr: np.ndarray) -> np.ndarray:
         """Return only the panel region with ROI boxes drawn on it.
 
-        Unlike :meth:`debug_overlay` (full frame), this crops first so the
-        debugger window shows only the keys — much easier to inspect alignment.
+        Crops to the panel first so the debugger window shows only the keys —
+        much easier to inspect alignment than overlaying on the full frame.
 
         When ``panel_crop`` is set, ROI box coordinates are already panel-
         relative so no offset is applied.  When ``panel_crop`` is ``None``
@@ -104,34 +103,5 @@ class ROIManager:
             cv2.putText(
                 out, box.key, (x0 + 2, y0 + 14),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1, cv2.LINE_AA,
-            )
-        return out
-
-    def debug_overlay(self, bgr: np.ndarray) -> np.ndarray:
-        """Draw ROI bounding boxes onto a BGR frame copy.
-
-        Useful for tools/roi_debugger.py to verify alignment.
-
-        Args:
-            bgr: BGR frame, shape (H, W, 3), dtype uint8.
-
-        Returns:
-            Copy of bgr with green rectangles and key labels drawn.
-        """
-        out = bgr.copy()
-        ox = self._panel_crop.x if self._panel_crop else 0
-        oy = self._panel_crop.y if self._panel_crop else 0
-        for box in self._boxes:
-            x0, y0 = box.x + ox, box.y + oy
-            cv2.rectangle(out, (x0, y0), (x0 + box.w, y0 + box.h), (0, 255, 0), 1)
-            cv2.putText(
-                out,
-                box.key,
-                (x0 + 2, y0 + 14),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.4,
-                (0, 255, 0),
-                1,
-                cv2.LINE_AA,
             )
         return out

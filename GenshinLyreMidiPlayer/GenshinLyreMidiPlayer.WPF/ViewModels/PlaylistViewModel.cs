@@ -138,7 +138,7 @@ public class PlaylistViewModel : Screen
     {
         var openFileDialog = new OpenFileDialog
         {
-            Filter      = "MIDI file|*.mid;*.midi|All files (*.*)|*.*",
+            Filter      = "Supported files|*.mid;*.midi;*.txt|MIDI file|*.mid;*.midi|Lyre token sheet|*.txt|All files (*.*)|*.*",
             Multiselect = true
         };
 

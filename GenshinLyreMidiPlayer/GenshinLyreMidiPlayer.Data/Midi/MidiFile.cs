@@ -41,5 +41,10 @@ public class MidiFile : Screen
     public IEnumerable<Melanchall.DryWetMidi.Core.MidiFile> Split(uint bars, uint beats, uint ticks) =>
         Midi.SplitByGrid(new SteppedGrid(new BarBeatTicksTimeSpan(bars, beats, ticks)));
 
-    public void InitializeMidi() => Midi = Melanchall.DryWetMidi.Core.MidiFile.Read(Path, _settings);
+    public void InitializeMidi()
+    {
+        Midi = System.IO.Path.GetExtension(Path).Equals(".txt", StringComparison.OrdinalIgnoreCase)
+            ? TokenConverter.ToMidi(Path)
+            : Melanchall.DryWetMidi.Core.MidiFile.Read(Path, _settings);
+    }
 }

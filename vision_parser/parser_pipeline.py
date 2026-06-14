@@ -141,7 +141,7 @@ class ParserPipeline:
         total_frames = reader.frame_count  # may be -1 for VFR containers
 
         # --- Phase 2a: calibrate per-key baselines from leading silent frames ---
-        calibrate_n = self._cfg.detection.calibrate_frames
+        calibrate_n = active_cfg.detection.calibrate_frames
         if calibrate_n > 0:
             calib_samples: list[dict] = []
             for packet in reader.frames():

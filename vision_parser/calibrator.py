@@ -9,7 +9,7 @@ Planned behavior (post-MVP):
 Implementation notes (for when this gets built):
     - Dear PyGui is preferred over tkinter for styling and widget richness
     - OpenCV highgui (cv2.setMouseCallback) is an acceptable zero-dep fallback
-    - The tool should call ROIManager.debug_overlay() for initial rendering
+    - The tool should call ROIManager.debug_overlay_cropped() for initial rendering
     - Resolution auto-scaling must be disabled during calibration (user works
       at the actual video resolution and saves those raw coordinates)
 """
