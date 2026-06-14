@@ -533,12 +533,7 @@ public class LyrePlayerViewModel : Screen,
     private void BuildTokenTimeline(string path)
     {
         var lines = File.ReadAllLines(path);
-        var bpm   = 120;
-
-        if (lines.Length > 0
-            && lines[0].StartsWith("BPM ", StringComparison.OrdinalIgnoreCase)
-            && int.TryParse(lines[0][4..].Trim(), out var parsed))
-            bpm = parsed;
+        var bpm   = TokenConverter.ParseBpm(lines);
 
         _tokenTimeline       = new List<VisualToken>();
         _lastVisualizerIndex = -1;

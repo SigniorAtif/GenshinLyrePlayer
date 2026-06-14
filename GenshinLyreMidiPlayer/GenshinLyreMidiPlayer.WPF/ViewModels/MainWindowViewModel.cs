@@ -1,11 +1,8 @@
 using System.Windows.Controls;
 using GenshinLyreMidiPlayer.Data;
 using JetBrains.Annotations;
-using ModernWpf;
 using Stylet;
 using StyletIoC;
-using Wpf.Ui.Appearance;
-using Wpf.Ui.Mvvm.Contracts;
 using AutoSuggestBox = Wpf.Ui.Controls.AutoSuggestBox;
 
 namespace GenshinLyreMidiPlayer.WPF.ViewModels;
@@ -14,14 +11,12 @@ namespace GenshinLyreMidiPlayer.WPF.ViewModels;
 public class MainWindowViewModel : Conductor<IScreen>
 {
     private readonly IContainer _ioc;
-    private readonly IThemeService _theme;
 
-    public MainWindowViewModel(IContainer ioc, IThemeService theme)
+    public MainWindowViewModel(IContainer ioc)
     {
         Title = $"Genshin Lyre MIDI Player {SettingsPageViewModel.ProgramVersion}";
 
-        _ioc   = ioc;
-        _theme = theme;
+        _ioc = ioc;
 
         PlaylistView   = new(ioc, this);
         SettingsView   = new(ioc, this);
@@ -83,20 +78,6 @@ public class MainWindowViewModel : Conductor<IScreen>
     }
 
     public void NavigateToSettings() => ShowSettings();
-
-    public void ToggleTheme()
-    {
-        ThemeManager.Current.ApplicationTheme = _theme.GetTheme() switch
-        {
-            ThemeType.Unknown      => ApplicationTheme.Dark,
-            ThemeType.Dark         => ApplicationTheme.Light,
-            ThemeType.Light        => ApplicationTheme.Dark,
-            ThemeType.HighContrast => ApplicationTheme.Dark,
-            _                      => ApplicationTheme.Dark
-        };
-
-        SettingsView.OnThemeChanged();
-    }
 
     public void SearchSong(AutoSuggestBox sender, TextChangedEventArgs e)
     {

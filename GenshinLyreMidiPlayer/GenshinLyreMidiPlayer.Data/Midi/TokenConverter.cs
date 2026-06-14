@@ -35,15 +35,23 @@ public static class TokenConverter
     // Ticks per quarter note — matches the default resolution used throughout the app
     private const int Ppq = 480;
 
-    public static Melanchall.DryWetMidi.Core.MidiFile ToMidi(string path)
+    /// <summary>
+    /// Parses the BPM value from the first line of a token sheet.
+    /// Returns 120 if the first line is absent or not a valid BPM header.
+    /// </summary>
+    public static int ParseBpm(string[] lines)
     {
-        var lines = File.ReadAllLines(path);
-        var bpm   = 120;
-
         if (lines.Length > 0
             && lines[0].StartsWith("BPM ", StringComparison.OrdinalIgnoreCase)
             && int.TryParse(lines[0][4..].Trim(), out var parsed))
-            bpm = parsed;
+            return parsed;
+        return 120;
+    }
+
+    public static Melanchall.DryWetMidi.Core.MidiFile ToMidi(string path)
+    {
+        var lines = File.ReadAllLines(path);
+        var bpm   = ParseBpm(lines);
 
         var midiFile = new Melanchall.DryWetMidi.Core.MidiFile();
         midiFile.TimeDivision = new TicksPerQuarterNoteTimeDivision(Ppq);

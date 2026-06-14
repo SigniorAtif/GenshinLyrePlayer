@@ -14,10 +14,6 @@ from shared.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_SCANCODES = (
-    Path(__file__).parent.parent / "config" / "key_mappings" / "lyre_scancodes.json"
-)
-
 
 class PlayerPipeline:
     """Full Player Engine pipeline: ``.txt`` token file → DirectInput keystrokes.
@@ -38,7 +34,7 @@ class PlayerPipeline:
         scancodes_path: str | Path | None = None,
         speed_factor: float = 1.0,
     ) -> None:
-        self._scancodes_path = scancodes_path or _DEFAULT_SCANCODES
+        self._scancodes_path = scancodes_path
         self._speed_factor = speed_factor
 
     def run(

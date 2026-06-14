@@ -104,5 +104,11 @@ public class PianoSheetViewModel : Screen
         Result = sb.ToString();
     }
 
+    public void CopyToClipboard()
+    {
+        if (!string.IsNullOrEmpty(Result))
+            System.Windows.Clipboard.SetText(Result);
+    }
+
     protected override void OnActivate() => Update();
 }
